@@ -9,21 +9,21 @@
 #include <string.h>
 #include <unistd.h>
 
-void usage()
-{
-	perror("usage: "
-			   "./a.out "
-			   "<port number to listen to> "
-			   "<routing table file path> "
-			   "<statistic file path>\n");
-	exit(1);
-}
+#define MAXSIZE 4096
+
+void usage();	/*to indicate usage of program*/
 
 /*  Program takes three command-line arguments: */
 /*  <port number to listen> <routing table file path> <statistic file path> */
-
 int main(int argc, char * argv[])
 {
+
+	struct sockaddr_in sockaddr, remoteaddr;
+	socklen_t remote_addrlen = sizeof(remoteaddr);
+	int recv_len;
+	int UDPsocket;
+	unsigned char buf[MAXSIZE];
+
 	/* check for invalid command line argument */
 	if(argc != 4) usage();
 
@@ -31,9 +31,9 @@ int main(int argc, char * argv[])
 	const char * routingTable_Path = argv[2]; 		/* store routing table file path */
 	const char * statistic_Path = argv[3]; 			/* store statistic file path */
 
-	struct sockaddr_in sockaddr;
+	
 	/* create socket from which to read */
-	int UDPsocket = socket(AF_INET, SOCK_DGRAM, 0);
+	UDPsocket = socket(AF_INET, SOCK_DGRAM, 0);
 	if(UDPsocket < 0)
 	{
 		perror("cannot create socket.");
@@ -46,12 +46,33 @@ int main(int argc, char * argv[])
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);	/* address for the socket */
 
 	/* associate the address with the socket */
-	if(bind(UDPsocket, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0)
+	if(bind(UDPsocket, &sockaddr, sizeof(sockaddr)) < 0)
 	{
 		perror("bind failed.");
 		exit(1);
 	}
+	
 	printf("Port number = %d\n", ntohs(sockaddr.sin_port));
-	printf("%d %s %s\n",UDPport, routingTable_Path, statistic_Path);
+
+	/* continuously receive data from port */
+	for(;;)
+	{
+		recv_len = recvfrom(UDPsocket, buf, MAXSIZE, 0, &remoteaddr, &remote_addrlen);
+		if(recv_len > 0)
+		{
+			printf("received message: \"%s\"\n", buf);
+		}
+	} 
+	/* never exits */
 	return 0;
+}
+
+void usage()
+{
+	perror("usage: "
+			   "./a.out "
+			   "<port number to listen to> "
+			   "<routing table file path> "
+			   "<statistic file path>\n");
+	exit(1);
 }
