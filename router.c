@@ -9,61 +9,111 @@
 #include <string.h>
 #include <unistd.h>
 
-#define MAXSIZE 4096
+#define MAXBUFSIZE 4096
+#define IPSIZE 16
 
-void usage();	/*to indicate usage of program*/
+/* for storing received packet information */
+struct packetInfo
+{
+	unsigned long packetID;
+	unsigned long sourceIP;
+	unsigned long destinationIP;
+	unsigned short timetolive;
+	unsigned char payload[MAXBUFSIZE];
+} pktInfo;
 
+/* for purposes of statistics */
+struct statistics
+{
+	unsigned long directDelPkt_count;			/* running count of packets directly delivered */
+	unsigned long forwardedPkt_count;			/* running count of forwarded packets */
+	unsigned long unroutedPkt_count;			/* running count of dropped packets */
+	unsigned long expiredPkt_count;				/* running count of expired packets */
+} stats;
+
+
+void usage();
+int getPktInfo(char buf[]);
 /*  Program takes three command-line arguments: */
 /*  <port number to listen> <routing table file path> <statistic file path> */
+/* the router program */
 int main(int argc, char * argv[])
 {
 
-	struct sockaddr_in sockaddr, remoteaddr;
+	struct sockaddr_in routeraddr, remoteaddr;
 	socklen_t remote_addrlen = sizeof(remoteaddr);
-	int recv_len;
-	int UDPsocket;
-	unsigned char buf[MAXSIZE];
+	int recv_len;	/* to store return value from recvfrom()*/
+	int routerSocket;	/* to store socket descriptor*/
+	char buf[MAXBUFSIZE];
 
-	/* check for invalid command line argument */
+	/* check for correct command line argument */
 	if(argc != 4) usage();
 
-	const unsigned short UDPport = atoi(argv[1]);	/* save port number */
+	const unsigned int UDPport = atoi(argv[1]);		/* save port number */
 	const char * routingTable_Path = argv[2]; 		/* store routing table file path */
 	const char * statistic_Path = argv[3]; 			/* store statistic file path */
 
 	
 	/* create socket from which to read */
-	UDPsocket = socket(AF_INET, SOCK_DGRAM, 0);
-	if(UDPsocket < 0)
+	routerSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	if(routerSocket < 0)
 	{
 		perror("cannot create socket.");
 		exit(1);
 	}
-	/* zero intialize the socketaddre_in struct */
-	memset((char *)&sockaddr, 0, sizeof(sockaddr));
-	sockaddr.sin_family = AF_INET;					/* address family for the socket */
-	sockaddr.sin_port = htons(UDPport);				/* assign given port number */
-	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);	/* address for the socket */
+	/* zero intialize the sockaddr_in struct */
+	memset((char *)&routeraddr, 0, sizeof(routeraddr));
+	routeraddr.sin_family = AF_INET;					/* address family for the socket */
+	routeraddr.sin_port = htons(UDPport);				/* assign any port number */
+	routeraddr.sin_addr.s_addr = htonl(INADDR_ANY);		/* any interface */
 
 	/* associate the address with the socket */
-	if(bind(UDPsocket, &sockaddr, sizeof(sockaddr)) < 0)
+	if(bind(routerSocket, (struct sockaddr *) &routeraddr, sizeof(routeraddr)) < 0)
 	{
 		perror("bind failed.");
 		exit(1);
 	}
 	
-	printf("Port number = %d\n", ntohs(sockaddr.sin_port));
-
+	printf("Port number = %d\n", ntohs(routeraddr.sin_port));	
 	/* continuously receive data from port */
 	for(;;)
 	{
-		recv_len = recvfrom(UDPsocket, buf, MAXSIZE, 0, &remoteaddr, &remote_addrlen);
+		recv_len = recvfrom(routerSocket, buf, MAXBUFSIZE, 0,
+							(struct sockaddr *) &remoteaddr, &remote_addrlen);
 		if(recv_len > 0)
 		{
-			printf("received message: \"%s\"\n", buf);
+			printf("received message: %s\n", buf);
+			getPktInfo(buf);
 		}
 	} 
 	/* never exits */
+	return 0;
+}
+/* update packetInfo struct with the received data*/
+int getPktInfo(char buf[])
+{
+	char delimiter[2] = ",";
+	char * token;
+	/*get packet ID*/
+	token = strtok(buf,delimiter);
+	pktInfo.packetID = (unsigned long) atol(token);
+	/*get source IP*/
+	token = strtok(NULL, delimiter);
+	
+	/* get destination IP*/
+	token = strtok(NULL, delimiter);
+	
+
+	/* get TTL */
+	token = strtok(NULL, delimiter);
+	unsigned short ttl = (unsigned short) atoi(token);
+	if((--ttl) == 0) return -1;
+	pktInfo.timetolive = ttl;
+
+	/*get payload*/
+	
+
+	
 	return 0;
 }
 
