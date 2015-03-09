@@ -15,15 +15,18 @@ const char * NetworkA_Hosts[] = {"192.168.128.7", "192.168.128.1"};
 const char * NetworkB_Hosts[] = {"192.168.192.10", "192.168.192.6", "192.168.192.4"};
 const char * NetworkC_Hosts[] = {"192.224.0.5","192.224.0.7", "192.224.10.5", "192.224.15.6"};
 
+FILE *fp;	/* global file pointer to reference the packet file */	
+
 struct generationStats
 {
 	unsigned long AB, AC;
 	unsigned long BA, BC;
 	unsigned long CA, CB;
 	unsigned long invalid;
-};
+}pktGenStats = {};
 
 void usage();
+void updateFile();
 /* packet gen program */
 int main(int argc, char *argv[])
 {
@@ -31,15 +34,22 @@ int main(int argc, char *argv[])
 	struct sockaddr_in pktgenaddr, routeraddr;
 	socklen_t router_addrlen = sizeof(routeraddr);
 	int pktGenSocket;
-	char buf[MAXBUFSIZE];
-	enum Network{ A, B, C };
-	struct generationStats pktGenStats = {};
+	char buf[MAXBUFSIZE];							/* to store the generated string */
+	enum Network{ A, B, C };						/* To represent the 3 networks */
+
+
 	/* check for correct command line arguments */
 	if(argc != 3) usage();
 
+
 	const unsigned int routerPort = atoi(argv[1]);		/* port number in order to connect to router */
 	const char * packetFile_Path = argv[2];				/* packet file path */
-
+	/* report error if file cannot be opened */
+	if((fp = fopen(packetFile_Path,"w")) == NULL)
+	{
+		perror("File cannot be opened.");
+		exit(1);
+	}
 	/* create socket from which to send */
 	pktGenSocket = socket(AF_INET, SOCK_DGRAM, 0);
 	if(pktGenSocket < 0)
@@ -79,7 +89,7 @@ int main(int argc, char *argv[])
 	float epsilon = 0.2;	/*20% of the time create a packet with invalid destination address */
 	for(;;)
 	{
-		PacketId++; /*increment PacketID */
+		PacketId++; /*increment PacketId */
 		/*randomly pick one out of the three networks*/
 		net = rand() % 3;
 		/*randomly select a TTL value between 1 and 4*/
@@ -152,6 +162,8 @@ int main(int argc, char *argv[])
 		if (sendto(pktGenSocket, buf, strlen(buf)+1, 0, (struct sockaddr *)&routeraddr, router_addrlen) < 0)
 			perror("error in sending packet.");
 
+		if((PacketId%20)==0)
+			updateFile();
 		// if(PacketId == 20)
 		// {	printf("\n");
 		// 	printf("# of Invalid Packets = %lu\n", pktGenStats.invalid);
@@ -165,6 +177,17 @@ int main(int argc, char *argv[])
 		// }
 	}
 	return 0;
+}
+void updateFile()
+{
+	rewind(fp); /*reset the file pointer to the beginning of the file */
+	fprintf(fp,"NetA to NetB: %lu\n\n", pktGenStats.AB);
+	fprintf(fp,"NetA to NetC: %lu\n\n", pktGenStats.AC);
+	fprintf(fp,"NetB to NetA: %lu\n\n", pktGenStats.BA);
+	fprintf(fp,"NetB to NetC: %lu\n\n", pktGenStats.BC);
+	fprintf(fp,"NetC to NetA: %lu\n\n", pktGenStats.CA);
+	fprintf(fp,"NetC to NetB: %lu\n\n", pktGenStats.CB);
+	fprintf(fp,"Invalid Destination: %lu\n", pktGenStats.invalid);
 }
 
 void usage()
