@@ -4,6 +4,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,11 +17,11 @@
 struct packetInfo
 {
 	unsigned long packetID;
-	unsigned long sourceIP;
-	unsigned long destinationIP;
+	struct sockaddr_in source;
+	struct sockaddr_in destination;
 	unsigned short timetolive;
-	unsigned char payload[MAXBUFSIZE];
-} pktInfo;
+	char payload[MAXBUFSIZE];
+} pktInfo = {};
 
 /* for purposes of statistics */
 struct statistics
@@ -29,7 +30,7 @@ struct statistics
 	unsigned long forwardedPkt_count;			/* running count of forwarded packets */
 	unsigned long unroutedPkt_count;			/* running count of dropped packets */
 	unsigned long expiredPkt_count;				/* running count of expired packets */
-} stats;
+} stats = {};
 
 
 void usage();
@@ -83,7 +84,34 @@ int main(int argc, char * argv[])
 		if(recv_len > 0)
 		{
 			printf("received message: %s\n", buf);
-			getPktInfo(buf);
+			unsigned int readingStatus = getPktInfo(buf);
+			if(readingStatus == 0)
+			{
+				/* TLL is zero */
+				printf("\texpired packet.\n");
+			}
+			else if(readingStatus == 1)
+			{
+	
+				printf("\tPacket Id: %lu\n", pktInfo.packetID);
+				printf("\tPayLoad: %s\n", pktInfo.payload);
+				char sourceIP_str[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &(pktInfo.source.sin_addr), sourceIP_str, INET_ADDRSTRLEN);
+				printf("\tSource IP: %s\n", sourceIP_str);
+				char destinationIP_str[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &(pktInfo.destination.sin_addr), destinationIP_str, INET_ADDRSTRLEN);
+				printf("\tDestionation IP: %s\n",destinationIP_str);
+				printf("\tTTL: %hu\n", pktInfo.timetolive);
+			}
+			else
+			{
+				printf("\tinvalid destionation address packet.\n");
+			}
+		}
+		else if(recv_len < 0)
+		{
+			perror("error is receiving packet.");
+			exit(1);
 		}
 	} 
 	/* never exits */
@@ -92,29 +120,33 @@ int main(int argc, char * argv[])
 /* update packetInfo struct with the received data*/
 int getPktInfo(char buf[])
 {
-	char delimiter[2] = ",";
-	char * token;
-	/*get packet ID*/
-	token = strtok(buf,delimiter);
-	pktInfo.packetID = (unsigned long) atol(token);
-	/*get source IP*/
-	token = strtok(NULL, delimiter);
-	
-	/* get destination IP*/
-	token = strtok(NULL, delimiter);
-	
+	unsigned long packetID_tok = 0;
+	char sourceIP_tok[INET_ADDRSTRLEN];
+	char destinationIP_tok[INET_ADDRSTRLEN];
+	unsigned short ttl = 0;
+	char payload[MAXBUFSIZE];
+	sscanf(buf, "%lu, %[^','], %[^','], %hu, %[^'\n']", 
+			&packetID_tok, sourceIP_tok, destinationIP_tok, &ttl, payload);
 
-	/* get TTL */
-	token = strtok(NULL, delimiter);
-	unsigned short ttl = (unsigned short) atoi(token);
-	if((--ttl) == 0) return -1;
+	/* get destination IP*/
+	inet_pton(AF_INET,destinationIP_tok,&(pktInfo.destination.sin_addr));
+	/* check if invalid destination IP*/
+	if(strcmp(destinationIP_tok, "168.130.192.01") == 0)
+		return -1;
+
+	/* check if TTL expires */
+	if((--ttl) == 0) return 0;
 	pktInfo.timetolive = ttl;
 
-	/*get payload*/
-	
+	/*get packet ID*/
+	pktInfo.packetID = packetID_tok;
+	/*get source IP*/
+	inet_pton(AF_INET,sourceIP_tok,&(pktInfo.source.sin_addr));
 
+	/*get payload*/
+	strcpy(pktInfo.payload, payload);
 	
-	return 0;
+	return 1;
 }
 
 void usage()
