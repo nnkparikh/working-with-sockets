@@ -164,17 +164,6 @@ int main(int argc, char *argv[])
 
 		if((PacketId%20)==0)
 			updateFile();
-		// if(PacketId == 20)
-		// {	printf("\n");
-		// 	printf("# of Invalid Packets = %lu\n", pktGenStats.invalid);
-		// 	printf("NetA to NetB = %lu\n", pktGenStats.AB);
-		// 	printf("NetA to NetC = %lu\n", pktGenStats.AC);
-		// 	printf("NetB to NetA = %lu\n", pktGenStats.BA);
-		// 	printf("NetB to NetC = %lu\n", pktGenStats.BC);
-		// 	printf("NetC to NetA = %lu\n", pktGenStats.CA);
-		// 	printf("NetC to NetB = %lu\n", pktGenStats.CB);
-		// 	break;
-		// }
 	}
 	return 0;
 }
