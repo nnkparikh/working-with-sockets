@@ -1,6 +1,7 @@
 /* CMPUT 379 Assignment 2a */
 /* Student: Neel Parikh */
 /* ID: 1358644 */
+/* packet gen program */
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -15,8 +16,6 @@ const char * NetworkA_Hosts[] = {"192.168.128.7", "192.168.128.1"};
 const char * NetworkB_Hosts[] = {"192.168.192.10", "192.168.192.6", "192.168.192.4"};
 const char * NetworkC_Hosts[] = {"192.224.0.5","192.224.0.7", "192.224.10.5", "192.224.15.6"};
 
-FILE *fp;	/* global file pointer to reference the packet file */	
-
 struct generationStats
 {
 	unsigned long AB, AC;
@@ -27,7 +26,8 @@ struct generationStats
 
 void usage();
 void updateFile();
-/* packet gen program */
+
+FILE *fp;	/* global file pointer to reference the packet file */	
 int main(int argc, char *argv[])
 {
 
