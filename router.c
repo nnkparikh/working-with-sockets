@@ -10,9 +10,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+
 #define MAXBUFSIZE 4096
 #define LINESIZE 80
-
+#define NUMOFHOSTS 2
 /* for storing received packet information */
 struct packetInfo
 {
@@ -41,7 +42,6 @@ enum Route findRoutingPath(struct sockaddr_in);		/* to determine which network t
 
 FILE *fp_route;	/* global file pointer to reference the routing table file path */
 FILE *fp_stats;	/* global file pointer to reference the statistic file path */
-
 /*  Program takes three command-line arguments: */
 /*  <port number to listen> <routing table file path> <statistic file path> */
 /* the router program */
