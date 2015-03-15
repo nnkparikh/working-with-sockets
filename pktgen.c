@@ -159,8 +159,12 @@ int main(int argc, char *argv[])
 		/*now generate packet*/
 		sprintf(buf, "%lu, %s, %s, %hu, %s%lu\n",PacketId, sourceHost, destinationHost, TTL, payload,PacketId);
 		printf("%s\n",buf);
+
 		if (sendto(pktGenSocket, buf, strlen(buf)+1, 0, (struct sockaddr *)&routeraddr, router_addrlen) < 0)
 			perror("error in sending packet.");
+
+		if((PacketId % 2) == 0)
+			sleep(5);
 
 		if((PacketId%20)==0)
 			updateFile();
