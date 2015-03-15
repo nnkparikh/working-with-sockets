@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 			perror("error in sending packet.");
 
 		if((PacketId % 2) == 0)
-			sleep(5);
+			sleep(2);
 
 		if((PacketId%20)==0)
 			updateFile();
