@@ -5,6 +5,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -184,6 +185,7 @@ void signal_handler(int signo){
 	{
 		printf("\n\nupdating packets file before exiting..\n"); 
     	updateFile();
+    	fclose(fp); /* close the file */
     	exit(1);
 	}
 	perror("could not handle this signal.\n");
