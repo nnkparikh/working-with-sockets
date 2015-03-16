@@ -37,7 +37,9 @@ struct statistics
 enum Route{ A, B, C, FAIL};
 
 void usage();
-int getPktInfo(char buf[]);								/* retreive the info from packets store into pktInfo struct*/
+void updateFile();
+void signal_handler(int);
+int getPktInfo(char buf[]);							/* retreive the info from packets store into pktInfo struct*/
 enum Route findRoutingPath(struct sockaddr_in);		/* to determine which network to forward the packet*/
 
 FILE *fp_route;	/* global file pointer to reference the routing table file path */
@@ -75,6 +77,9 @@ int main(int argc, char * argv[])
 		exit(1);
 	}
 
+	/*declare custom signal handler*/
+    if(signal(SIGINT, signal_handler) == SIG_ERR)
+    	perror("can't catch SIGSEGV\n");
 
 	/* create socket from which to read */
 	routerSocket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -96,7 +101,8 @@ int main(int argc, char * argv[])
 		exit(1);
 	}
 	
-	printf("Port number = %d\n", ntohs(routeraddr.sin_port));	
+	printf("Port number = %d\n", ntohs(routeraddr.sin_port));
+	unsigned long packetCounter = 0;	
 	/* continuously receive data from port */
 	for(;;)
 	{
@@ -106,6 +112,9 @@ int main(int argc, char * argv[])
 		{
 			printf("\nreceived message: %s\n", buf);
 			unsigned int readingStatus = getPktInfo(buf);
+
+			/*received packet*/
+			packetCounter++;
 			/* The packet was processed and the TTL became zero */
 			if(readingStatus == 0)
 			{
@@ -158,6 +167,8 @@ int main(int argc, char * argv[])
 				printf("\tinvalid destination address packet.\n");
 				stats.unroutedPkt_count++;	/* increment unrouted packet count */
 			}
+			if((packetCounter%20) == 0)
+				updateFile();
 		}
 		/* could not receive packet */
 		else if(recv_len < 0)
@@ -168,6 +179,27 @@ int main(int argc, char * argv[])
 	} 
 	/* never exits */
 	return 0;
+}
+
+/* handle the the signal*/
+void signal_handler(int signo){ 
+	if (signo == SIGINT)
+	{
+		printf("\n\nupdating statistics file before exiting..\n"); 
+    	updateFile();
+    	exit(1);
+	}
+	perror("could not handle this signal.\n");
+}
+
+void updateFile()
+{
+	rewind(fp_stats); /*reset the file pointer to the beginning of the file */
+	fprintf(fp_stats,"expired packets: %lu\n\n", stats.expiredPkt_count);
+	fprintf(fp_stats,"unroutable packets: %lu\n\n", stats.unroutedPkt_count);
+	fprintf(fp_stats,"delivered direct: %lu\n\n", stats.directDelPkt_count);
+	fprintf(fp_stats,"router B: %lu\n\n", stats.BPkt_count);
+	fprintf(fp_stats,"router C: %lu\n\n", stats.CPkt_count);
 }
 
 enum Route findRoutingPath(struct sockaddr_in packetDestination)
