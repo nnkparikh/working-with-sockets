@@ -1,10 +1,12 @@
 /* CMPUT 379 Assignment 2a */
 /* Student: Neel Parikh */
 /* ID: 1358644 */
+/* router program */
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,6 +189,8 @@ void signal_handler(int signo){
 	{
 		printf("\n\nupdating statistics file before exiting..\n"); 
     	updateFile();
+    	fclose(fp_stats); /* close the statistics file*/
+    	fclose(fp_route); /* close the routing file*/
     	exit(1);
 	}
 	perror("could not handle this signal.\n");
