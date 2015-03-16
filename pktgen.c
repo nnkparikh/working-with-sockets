@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 void signal_handler(int signo){ 
 	if (signo == SIGINT)
 	{
-		printf("\n\nupdating file before exiting..\n"); 
+		printf("\n\nupdating packets file before exiting..\n"); 
     	updateFile();
     	exit(1);
 	}
