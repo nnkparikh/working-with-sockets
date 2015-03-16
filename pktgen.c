@@ -26,6 +26,7 @@ struct generationStats
 
 void usage();
 void updateFile();
+void signal_handler(int);
 
 FILE *fp;	/* global file pointer to reference the packet file */	
 int main(int argc, char *argv[])
@@ -40,7 +41,6 @@ int main(int argc, char *argv[])
 
 	/* check for correct command line arguments */
 	if(argc != 3) usage();
-
 
 	const unsigned int routerPort = atoi(argv[1]);		/* port number in order to connect to router */
 	const char * packetFile_Path = argv[2];				/* packet file path */
@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
 		perror("cannot create socket.");
 		exit(1);
 	}
+
+	/*declare custom signal handler*/
+    if(signal(SIGINT, signal_handler) == SIG_ERR)
+    	perror("can't catch SIGSEGV\n");
 	/* zero intialize the sockaddr_in struct */
 	memset((char *)&pktgenaddr, 0, sizeof(pktgenaddr));
 	pktgenaddr.sin_family = AF_INET;					/* address family for the socket */
@@ -160,17 +164,31 @@ int main(int argc, char *argv[])
 		sprintf(buf, "%lu, %s, %s, %hu, %s%lu\n",PacketId, sourceHost, destinationHost, TTL, payload,PacketId);
 		printf("%s\n",buf);
 
+		/* send generated packet to router*/
 		if (sendto(pktGenSocket, buf, strlen(buf)+1, 0, (struct sockaddr *)&routeraddr, router_addrlen) < 0)
 			perror("error in sending packet.");
 
+		/*for every 2 packets generated, go to sleep for 2 seconds*/
 		if((PacketId % 2) == 0)
 			sleep(2);
-
-		if((PacketId%20)==0)
+		/*for every 20 packets generated, update the packet file*/
+		if((PacketId%20) == 0)
 			updateFile();
 	}
 	return 0;
 }
+
+/* handle the the signal*/
+void signal_handler(int signo){ 
+	if (signo == SIGINT)
+	{
+		printf("\n\nupdating file before exiting..\n"); 
+    	updateFile();
+    	exit(1);
+	}
+	perror("could not handle this signal.\n");
+}
+
 void updateFile()
 {
 	rewind(fp); /*reset the file pointer to the beginning of the file */
