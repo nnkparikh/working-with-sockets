@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	}
 	/* create socket from which to send */
 	pktGenSocket = socket(AF_INET, SOCK_DGRAM, 0);
-	if(pktGenSocket < 0)
+	if(pktGenSocket == -1)
 	{
 		perror("cannot create socket.");
 		exit(1);
