@@ -85,7 +85,7 @@ int main(int argc, char * argv[])
 
 	/* create socket from which to read */
 	routerSocket = socket(AF_INET, SOCK_DGRAM, 0);
-	if(routerSocket < 0)
+	if(routerSocket == -1)
 	{
 		perror("cannot create socket.");
 		exit(1);
@@ -93,7 +93,7 @@ int main(int argc, char * argv[])
 	/* zero intialize the sockaddr_in struct */
 	memset((char *)&routeraddr, 0, sizeof(routeraddr));
 	routeraddr.sin_family = AF_INET;					/* address family for the socket */
-	routeraddr.sin_port = htons(UDPport);				/* assign any port number */
+	routeraddr.sin_port = htons(UDPport);				/* assign the given port number */
 	routeraddr.sin_addr.s_addr = htonl(INADDR_ANY);		/* any interface */
 
 	/* associate the address with the socket */
