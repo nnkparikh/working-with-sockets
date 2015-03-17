@@ -5,6 +5,7 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,16 +13,19 @@
 
 #define MAXBUFSIZE 4096
 
+/* list of hosts in networks A , B and C */
 const char * NetworkA_Hosts[] = {"192.168.128.7", "192.168.128.1"};
 const char * NetworkB_Hosts[] = {"192.168.192.10", "192.168.192.6", "192.168.192.4"};
 const char * NetworkC_Hosts[] = {"192.224.0.5","192.224.0.7", "192.224.10.5", "192.224.15.6"};
 
+/* will be used to mak the packet File*/
 struct generationStats
 {
 	unsigned long AB, AC;
 	unsigned long BA, BC;
 	unsigned long CA, CB;
 	unsigned long invalid;
+
 }pktGenStats = {};
 
 void usage();
@@ -35,8 +39,8 @@ int main(int argc, char *argv[])
 	struct sockaddr_in pktgenaddr, routeraddr;
 	socklen_t router_addrlen = sizeof(routeraddr);
 	int pktGenSocket;
-	char buf[MAXBUFSIZE];							/* to store the generated string */
-	enum Network{ A, B, C };						/* To represent the 3 networks */
+	char buf[MAXBUFSIZE];							/* to store the generated packet string */
+	enum Network{ A, B, C };						/* represent the 3 networks */
 
 
 	/* check for correct command line arguments */
@@ -44,6 +48,7 @@ int main(int argc, char *argv[])
 
 	const unsigned int routerPort = atoi(argv[1]);		/* port number in order to connect to router */
 	const char * packetFile_Path = argv[2];				/* packet file path */
+
 	/* report error if file cannot be opened */
 	if((fp = fopen(packetFile_Path,"w")) == NULL)
 	{
@@ -61,6 +66,7 @@ int main(int argc, char *argv[])
 	/*declare custom signal handler*/
     if(signal(SIGINT, signal_handler) == SIG_ERR)
     	perror("can't catch SIGSEGV\n");
+
 	/* zero intialize the sockaddr_in struct */
 	memset((char *)&pktgenaddr, 0, sizeof(pktgenaddr));
 	pktgenaddr.sin_family = AF_INET;					/* address family for the socket */
@@ -161,7 +167,7 @@ int main(int argc, char *argv[])
 		/* network of the source host and the desestionation host will be different */
 
 		/*now generate packet*/
-		sprintf(buf, "%lu, %s, %s, %hu, %s%lu\n",PacketId, sourceHost, destinationHost, TTL, payload,PacketId);
+		sprintf(buf, "%lu, %s, %s, %hu, \"%s%lu\"\n",PacketId, sourceHost, destinationHost, TTL, payload,PacketId);
 		printf("%s\n",buf);
 
 		/* send generated packet to router*/
@@ -184,6 +190,7 @@ void signal_handler(int signo){
 	{
 		printf("\n\nupdating packets file before exiting..\n"); 
     	updateFile();
+    	fclose(fp); /* close the file */
     	exit(1);
 	}
 	perror("could not handle this signal.\n");
@@ -192,13 +199,13 @@ void signal_handler(int signo){
 void updateFile()
 {
 	rewind(fp); /*reset the file pointer to the beginning of the file */
-	fprintf(fp,"NetA to NetB: %lu\n\n", pktGenStats.AB);
+	fprintf(fp,"\nNetA to NetB: %lu\n\n", pktGenStats.AB);
 	fprintf(fp,"NetA to NetC: %lu\n\n", pktGenStats.AC);
 	fprintf(fp,"NetB to NetA: %lu\n\n", pktGenStats.BA);
 	fprintf(fp,"NetB to NetC: %lu\n\n", pktGenStats.BC);
 	fprintf(fp,"NetC to NetA: %lu\n\n", pktGenStats.CA);
 	fprintf(fp,"NetC to NetB: %lu\n\n", pktGenStats.CB);
-	fprintf(fp,"Invalid Destination: %lu\n", pktGenStats.invalid);
+	fprintf(fp,"Invalid Destination: %lu\n\n", pktGenStats.invalid);
 }
 
 void usage()
