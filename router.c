@@ -1,10 +1,12 @@
 /* CMPUT 379 Assignment 2a */
 /* Student: Neel Parikh */
 /* ID: 1358644 */
+/* router program */
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -174,7 +176,7 @@ int main(int argc, char * argv[])
 		else if(recv_len < 0)
 		{
 			perror("error is receiving packet.");
-			exit(1);
+            /* do not exit */
 		}
 	} 
 	/* never exits */
@@ -187,6 +189,8 @@ void signal_handler(int signo){
 	{
 		printf("\n\nupdating statistics file before exiting..\n"); 
     	updateFile();
+    	fclose(fp_stats); /* close the statistics file*/
+    	fclose(fp_route); /* close the routing file*/
     	exit(1);
 	}
 	perror("could not handle this signal.\n");
@@ -195,7 +199,7 @@ void signal_handler(int signo){
 void updateFile()
 {
 	rewind(fp_stats); /*reset the file pointer to the beginning of the file */
-	fprintf(fp_stats,"expired packets: %lu\n\n", stats.expiredPkt_count);
+	fprintf(fp_stats,"\nexpired packets: %lu\n\n", stats.expiredPkt_count);
 	fprintf(fp_stats,"unroutable packets: %lu\n\n", stats.unroutedPkt_count);
 	fprintf(fp_stats,"delivered direct: %lu\n\n", stats.directDelPkt_count);
 	fprintf(fp_stats,"router B: %lu\n\n", stats.BPkt_count);
