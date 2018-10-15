@@ -1,8 +1,3 @@
-/* CMPUT 379 Assignment 2a */
-/* Student: Neel Parikh */
-/* ID: 1358644 */
-/* router program */
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
